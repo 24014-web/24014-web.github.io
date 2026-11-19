@@ -3,15 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#050607" />
-    <meta name="description" content="A new digital space is taking shape. Check back soon." />
+    <meta name="theme-color" content="#05050a" />
+    <meta name="description" content="NVOR is taking shape. A new digital space is coming into focus." />
     <title>NVOR — In the making</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+        }
+      }
+    </script>
     <script src="motion.js" defer></script>
+    <script type="module" src="model3d.js"></script>
   </head>
   <body>
     <div class="ambient" aria-hidden="true">
@@ -50,7 +59,7 @@
           <div class="hero-copy reveal">
             <p class="eyebrow"><span class="eyebrow-number">01</span><span class="eyebrow-rule"></span>IN THE MAKING</p>
             <h1 id="hero-title">Something<br /><span class="title-muted">good is taking</span><br />shape<span class="title-period">.</span></h1>
-            <p class="hero-description">A new digital space is coming into focus. Thoughtfully made, with a little more room to breathe.</p>
+          <p class="hero-description">A new digital space is taking shape — quietly, carefully, and in its own light.</p>
             <div class="hero-actions">
               <a class="button-primary" href="#note">
                 <span>Take a look around</span>
@@ -60,22 +69,20 @@
             </div>
           </div>
 
-          <div class="hero-art reveal" role="img" aria-label="An abstract, slowly orbiting light sculpture">
-            <div class="art-topline"><span>FIG. 01</span><span>AN OPEN SPACE</span></div>
+          <div class="hero-art reveal" role="img" aria-label="A rotating black hole with a turbulent, pearlescent accretion disk">
+            <div class="art-topline"><span>EVENT HORIZON</span><span>LIGHT IN MOTION</span></div>
             <div class="orbit-scene" id="orbitScene" aria-hidden="true">
+              <canvas class="three-canvas" id="nvor3d"></canvas>
               <div class="orbit-system">
-                <div class="orbit orbit-a"><span class="orbit-node"></span></div>
-                <div class="orbit orbit-b"><span class="orbit-node"></span></div>
-                <div class="orbit orbit-c"><span class="orbit-node"></span></div>
-                <div class="orbit orbit-d"></div>
-                <div class="core-halo"></div>
-                <div class="core-lens"><span>N</span><i></i></div>
-                <span class="light-point light-point-one"></span>
-                <span class="light-point light-point-two"></span>
-                <span class="light-point light-point-three"></span>
+                <div class="blackhole-fallback">
+                  <span class="fallback-disc"></span>
+                  <span class="fallback-halo"></span>
+                  <span class="fallback-photon-ring"></span>
+                  <span class="fallback-horizon"></span>
+                </div>
               </div>
             </div>
-            <div class="art-bottomline"><span>QUIETLY UNFOLDING</span><span class="art-coordinate">N° / 001</span></div>
+            <div class="art-bottomline"><span>GRAVITY IN MOTION</span><span class="art-coordinate">ACCRETION / 01</span></div>
           </div>
 
           <div class="hero-floor">
@@ -153,3 +160,4 @@
     </div>
   </body>
 </html>
+
