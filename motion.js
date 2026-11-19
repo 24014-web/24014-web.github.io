@@ -29,6 +29,7 @@
 
   function setMotionState() {
     document.documentElement.classList.toggle("motion-paused", paused);
+    window.dispatchEvent(new CustomEvent("motionstatechange", { detail: { paused } }));
     if (motionToggle) {
       motionToggle.setAttribute("aria-pressed", String(paused));
       motionToggle.setAttribute("aria-label", paused ? "Resume motion" : "Pause motion");
@@ -54,7 +55,7 @@
     canvas.style.height = `${height}px`;
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-    const count = Math.min(92, Math.max(28, Math.round((width * height) / 19000)));
+    const count = Math.min(68, Math.max(24, Math.round((width * height) / 26000)));
     particles = Array.from({ length: count }, () => ({
       x: random(0, width),
       y: random(0, height),
@@ -165,10 +166,14 @@
         const bounds = hero.getBoundingClientRect();
         const x = (event.clientX - bounds.left) / bounds.width - 0.5;
         const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+        hero.style.setProperty("--specular-x", ((x + 0.5) * 100).toFixed(1) + "%");
+        hero.style.setProperty("--specular-y", ((y + 0.5) * 100).toFixed(1) + "%");
         orbitScene.style.transform = `rotateX(${(-y * 9).toFixed(2)}deg) rotateY(${(x * 11).toFixed(2)}deg)`;
       }, { passive: true });
       hero?.addEventListener("pointerleave", () => {
         orbitScene.style.transform = "rotateX(0deg) rotateY(0deg)";
+        hero.style.setProperty("--specular-x", "52%");
+        hero.style.setProperty("--specular-y", "42%");
       });
     }
 
@@ -228,3 +233,4 @@
   const year = document.getElementById("year");
   if (year) year.textContent = String(new Date().getFullYear());
 })();
+
