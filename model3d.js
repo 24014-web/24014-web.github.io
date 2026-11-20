@@ -1,19 +1,29 @@
-import * as THREE from "three";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-
 const stage = document.getElementById("orbitScene");
 const canvas = document.getElementById("nvor3d");
 const hero = stage?.closest(".hero-art");
 
 if (stage && canvas && hero) {
-  try {
+  const initializeScene = async () => {
+    try {
+      const [THREE, { RoomEnvironment }] = await Promise.all([
+        import("three"),
+        import("three/addons/environments/RoomEnvironment.js"),
+      ]);
+    const compactDevice = window.matchMedia("(max-width: 720px)").matches;
+    const lowPowerDevice = compactDevice
+      || (navigator.hardwareConcurrency || 8) <= 4
+      || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+    const maxPixelRatio = compactDevice ? 1 : lowPowerDevice ? 1.15 : 1.4;
+    let pixelRatioLimit = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
+    let activePixelRatio = pixelRatioLimit;
+    const minPixelRatio = compactDevice ? 0.72 : lowPowerDevice ? 0.78 : 0.86;
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
-      antialias: true,
-      powerPreference: "high-performance",
+      antialias: !compactDevice,
+      powerPreference: lowPowerDevice ? "low-power" : "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+    renderer.setPixelRatio(activePixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
@@ -123,7 +133,7 @@ if (stage && canvas && hero) {
       "float fbm(vec2 p) {",
       "  float value = 0.0;",
       "  float amplitude = 0.5;",
-      "  for (int i = 0; i < 5; i++) {",
+      "  for (int i = 0; i < 3; i++) {",
       "    value += noise(p) * amplitude;",
       "    p = p * 2.03 + vec2(17.1, 9.2);",
       "    amplitude *= 0.5;",
@@ -136,16 +146,19 @@ if (stage && canvas && hero) {
       "void main() {",
       "  float angle = vUv.x * 6.2831853;",
       "  float radius = vUv.y;",
-      "  vec2 flow = vec2(angle * 3.3 + uTime * 0.4 + uPhase, radius * 19.0 - uTime * 0.8);",
+      "  vec2 flow = vec2(cos(angle * 3.0), sin(angle * 3.0)) * 3.3 + vec2(uTime * 0.4 + uPhase, radius * 19.0 - uTime * 0.8);",
       "  float cloud = fbm(flow);",
-      "  float turbulence = fbm(vec2(angle * 11.0 - uTime * 0.22 + cloud * 2.4, radius * 36.0 + uTime * 0.65));",
+      "  vec2 turbulenceUv = vec2(cos(angle * 5.0), sin(angle * 5.0)) * 11.0 + vec2(-uTime * 0.22 + cloud * 2.4, radius * 36.0 + uTime * 0.65);",
+      "  float turbulence = noise(turbulenceUv) * 0.68 + noise(turbulenceUv * 1.91 + 7.3) * 0.32;",
       "  float filament = pow(max(0.0, sin(angle * 27.0 + cloud * 7.0 - radius * 31.0 - uTime * 1.8 + uPhase)), 9.0);",
       "  float innerFade = smoothstep(0.0, 0.075, radius);",
       "  float outerFade = 1.0 - smoothstep(0.87, 1.0, radius);",
-      "  float hue = fract(vUv.x * 0.72 + radius * 0.19 + turbulence * 0.2 + uPhase * 0.08 + uTime * 0.008);",
+      "  float hue = fract(0.52 + sin(angle + radius * 2.4 + cloud * 1.9 - uTime * 0.07 + uPhase) * 0.19 + radius * 0.19 + turbulence * 0.17 + uPhase * 0.08 + uTime * 0.012);",
       "  vec3 color = spectrum(hue);",
-      "  color = mix(color, vec3(0.08, 0.48, 0.98), smoothstep(0.18, 0.52, radius) * 0.52);",
-      "  color = mix(color, vec3(0.88, 0.18, 0.67), smoothstep(0.48, 0.9, hue) * 0.45);",
+      "  float chromaFlow = 0.5 + 0.5 * sin(angle * 2.0 - uTime * 0.35 + radius * 5.6 + cloud * 3.0 + turbulence * 2.0 + uPhase);",
+      "  float blueFlow = 0.5 + 0.5 * sin(angle + uTime * 0.22 - radius * 3.4 + turbulence * 3.0 + uPhase);",
+      "  color = mix(color, vec3(0.12, 0.42, 0.96), blueFlow * 0.24);",
+      "  color = mix(color, vec3(0.92, 0.26, 0.76), (1.0 - blueFlow) * 0.13 + chromaFlow * 0.1);",
       "  color = mix(color, vec3(0.87, 0.95, 1.0), (1.0 - smoothstep(0.0, 0.26, radius)) * 0.8);",
       "  float detail = 0.18 + cloud * 0.72 + turbulence * 0.42 + filament * 0.62;",
       "  float alpha = innerFade * outerFade * (0.28 + cloud * 0.42 + turbulence * 0.36 + filament * 0.42);",
@@ -175,7 +188,7 @@ if (stage && canvas && hero) {
         toneMapped: false,
       });
       const mesh = new THREE.Mesh(
-        makeDiskGeometry(layer.inner, layer.outer, 82, 440),
+        makeDiskGeometry(layer.inner, layer.outer, 56, 280),
         material,
       );
       mesh.position.z = layer.z;
@@ -183,7 +196,7 @@ if (stage && canvas && hero) {
       disks.push({ material, speed: layer.phase === 0 ? 1 : 1.24 });
     });
 
-    const dustCount = 720;
+    const dustCount = 420;
     const dustPositions = new Float32Array(dustCount * 3);
     const dustColors = new Float32Array(dustCount * 3);
     const dustSizes = new Float32Array(dustCount);
@@ -248,7 +261,7 @@ if (stage && canvas && hero) {
     scene.add(horizon);
 
     const photonRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.785, 0.018, 14, 320),
+      new THREE.TorusGeometry(0.785, 0.018, 10, 192),
       new THREE.MeshPhysicalMaterial({
         color: 0xe8e5ff,
         metalness: 0.74,
@@ -298,7 +311,7 @@ if (stage && canvas && hero) {
     scene.add(lensingHalo);
 
     const outerRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.96, 0.004, 8, 320),
+      new THREE.TorusGeometry(0.96, 0.004, 8, 192),
       new THREE.MeshBasicMaterial({
         color: 0x829cff,
         transparent: true,
@@ -315,7 +328,7 @@ if (stage && canvas && hero) {
       "uniform float uRipplePhase;",
       "uniform float uRippleScale;",
       "uniform float uRippleStrength;",
-      "varying vec3 vLiquidPosition;",
+      "varying float vLiquidGrain;",
       "float liquidHash(vec3 p) {",
       "  p = fract(p * 0.1031);",
       "  p += dot(p, p.yzx + 33.33);",
@@ -340,25 +353,24 @@ if (stage && canvas && hero) {
       "float liquidFbm(vec3 p) {",
       "  float value = 0.0;",
       "  float amplitude = 0.5;",
-      "  for (int i = 0; i < 4; i++) {",
+      "  for (int i = 0; i < 3; i++) {",
       "    value += liquidNoise(p) * amplitude;",
       "    p = p * 2.03 + vec3(11.7, 7.3, 5.9);",
       "    amplitude *= 0.5;",
       "  }",
       "  return value;",
       "}",
-      "float liquidHeight(vec3 p) {",
+      "float liquidHeight(vec3 p, float grain) {",
       "  vec3 q = p * uRippleScale;",
       "  float t = uRippleTime;",
       "  float broad = sin(dot(q, vec3(2.4, 3.1, 2.8)) + sin(q.z * 2.8 + q.x * 1.7 + t * 0.25) * 0.85 - t * 0.38 + uRipplePhase);",
-      "  float grain = liquidFbm(q * 1.65 + vec3(-t * 0.14, t * 0.12, uRipplePhase * 0.7));",
       "  float fold = sin(q.y * 4.4 - q.z * 3.2 + grain * 3.0 + t * 0.42);",
       "  float ridge = 1.0 - abs(sin(q.x * 2.8 + q.y * 1.5 + q.z * 3.3 + grain * 2.2 + t * 0.24));",
       "  return uRippleStrength * (broad * 0.58 + fold * 0.22 + (grain - 0.5) * 0.34 + (ridge - 0.5) * 0.11);",
       "}",
     ].join("\n");
 
-    const planetGeometry = new THREE.SphereGeometry(1, 64, 48);
+    const planetGeometry = new THREE.SphereGeometry(1, 48, 32);
     const planets = [];
     const planetSpecs = [
       { name: "Luma", radius: 1.52, size: 0.23, tiltX: 0.68, tiltY: 0.12, speed: 0.34, spin: 0.7, phase: 0.3, rippleScale: 3.2, rippleStrength: 0.066, color: 0x17151f, tint: 0xa78cff },
@@ -387,7 +399,7 @@ if (stage && canvas && hero) {
         depthWrite: false,
       });
       const path = new THREE.Mesh(
-        new THREE.TorusGeometry(spec.radius, index === 1 ? 0.003 : 0.0022, 8, 180),
+        new THREE.TorusGeometry(spec.radius, index === 1 ? 0.003 : 0.0022, 8, 128),
         pathMaterial,
       );
       orbit.add(path);
@@ -428,10 +440,12 @@ if (stage && canvas && hero) {
               "vec3 liquidHelper = abs(liquidN0.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);",
               "vec3 liquidTangent = normalize(cross(liquidHelper, liquidN0));",
               "vec3 liquidBitangent = normalize(cross(liquidN0, liquidTangent));",
+              "vec3 liquidFlow = position * uRippleScale * 1.65 + vec3(-uRippleTime * 0.14, uRippleTime * 0.12, uRipplePhase * 0.7);",
+              "vLiquidGrain = liquidFbm(liquidFlow);",
               "float liquidEpsilon = 0.018;",
-              "float liquidBaseHeight = liquidHeight(position);",
-              "float liquidSlopeT = (liquidHeight(position + liquidTangent * liquidEpsilon) - liquidBaseHeight) / liquidEpsilon;",
-              "float liquidSlopeB = (liquidHeight(position + liquidBitangent * liquidEpsilon) - liquidBaseHeight) / liquidEpsilon;",
+              "float liquidBaseHeight = liquidHeight(position, vLiquidGrain);",
+              "float liquidSlopeT = (liquidHeight(position + liquidTangent * liquidEpsilon, vLiquidGrain) - liquidBaseHeight) / liquidEpsilon;",
+              "float liquidSlopeB = (liquidHeight(position + liquidBitangent * liquidEpsilon, vLiquidGrain) - liquidBaseHeight) / liquidEpsilon;",
               "objectNormal = normalize(liquidN0 - liquidTangent * liquidSlopeT - liquidBitangent * liquidSlopeB);",
             ].join("\n"),
           )
@@ -439,8 +453,7 @@ if (stage && canvas && hero) {
             "#include <begin_vertex>",
             [
               "#include <begin_vertex>",
-              "vLiquidPosition = position;",
-              "transformed += normalize(normal) * liquidHeight(position);",
+              "transformed += normalize(normal) * liquidHeight(position, vLiquidGrain);",
             ].join("\n"),
           );
         shader.fragmentShader = shader.fragmentShader
@@ -452,7 +465,7 @@ if (stage && canvas && hero) {
             "#include <roughnessmap_fragment>",
             [
               "#include <roughnessmap_fragment>",
-              "float liquidMicrofold = liquidFbm(vLiquidPosition * uRippleScale * 0.62 + vec3(uRippleTime * 0.18, uRipplePhase, 0.0));",
+              "float liquidMicrofold = vLiquidGrain;",
               "roughnessFactor = clamp(roughnessFactor + (liquidMicrofold - 0.5) * 0.055, 0.065, 0.2);",
             ].join("\n"),
           )
@@ -460,7 +473,7 @@ if (stage && canvas && hero) {
             "#include <opaque_fragment>",
             [
               "float liquidFacing = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);",
-              "float liquidFilmNoise = liquidFbm(vLiquidPosition * uRippleScale * 0.72 + vec3(uRippleTime * 0.16, uRipplePhase, 0.0));",
+              "float liquidFilmNoise = vLiquidGrain;",
               "float liquidGlint = pow(max(0.0, sin(liquidFilmNoise * 15.0 + uRippleTime * 0.3 + uRipplePhase)), 18.0);",
               "vec3 liquidFilmColor = 0.52 + 0.48 * cos(6.2831853 * (uRipplePhase + liquidFacing * 0.6 + liquidFilmNoise * 0.12 + vec3(0.0, 0.34, 0.67)));",
               "float liquidFilmMask = smoothstep(0.34, 0.94, liquidFacing) * (0.16 + liquidGlint * 0.84);",
@@ -495,8 +508,12 @@ if (stage && canvas && hero) {
     let frame = 0;
     let paused = document.documentElement.classList.contains("motion-paused");
     let visible = !document.hidden;
+    const initialBounds = stage.getBoundingClientRect();
+    let inView = initialBounds.bottom > 0 && initialBounds.top < window.innerHeight;
     let previousTime = 0;
     let elapsed = 0;
+    let slowFrameCount = 0;
+    let fastFrameCount = 0;
 
     document.querySelectorAll("[data-orb-focus]").forEach((card) => {
       const index = Number(card.dataset.orbFocus);
@@ -518,19 +535,50 @@ if (stage && canvas && hero) {
       const bounds = stage.getBoundingClientRect();
       const width = Math.max(1, Math.round(bounds.width));
       const height = Math.max(1, Math.round(bounds.height));
+      const compact = window.matchMedia("(max-width: 720px)").matches;
+      const lowPower = compact
+        || (navigator.hardwareConcurrency || 8) <= 4
+        || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+      const pixelRatioCeiling = Math.min(window.devicePixelRatio || 1, compact ? 1 : lowPower ? 1.15 : 1.4);
+      pixelRatioLimit = pixelRatioCeiling;
+      const nextPixelRatio = Math.min(activePixelRatio, pixelRatioCeiling);
+      if (nextPixelRatio !== activePixelRatio) {
+        activePixelRatio = nextPixelRatio;
+        renderer.setPixelRatio(activePixelRatio);
+      }
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      dustMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio();
-      if (!frame) renderer.render(scene, camera);
+      dustMaterial.uniforms.uPixelRatio.value = activePixelRatio;
+      if (!frame && visible && inView) renderer.render(scene, camera);
     }
 
     function render(time) {
       frame = 0;
-      if (paused || !visible) return;
+      if (paused || !visible || !inView) return;
       const delta = previousTime ? Math.min((time - previousTime) / 1000, 0.05) : 0;
       previousTime = time;
       elapsed += delta;
+
+      if (delta > 0.024) {
+        slowFrameCount += 1;
+        fastFrameCount = 0;
+      } else if (delta > 0 && delta < 0.018) {
+        fastFrameCount += 1;
+        slowFrameCount = 0;
+      } else {
+        slowFrameCount = 0;
+        fastFrameCount = 0;
+      }
+      if (slowFrameCount >= 10 && activePixelRatio > minPixelRatio) {
+        activePixelRatio = Math.max(minPixelRatio, activePixelRatio - 0.14);
+        renderer.setPixelRatio(activePixelRatio);
+        slowFrameCount = 0;
+      } else if (fastFrameCount >= 240 && activePixelRatio < pixelRatioLimit) {
+        activePixelRatio = Math.min(pixelRatioLimit, activePixelRatio + 0.06);
+        renderer.setPixelRatio(activePixelRatio);
+        fastFrameCount = 0;
+      }
 
       pointer.x += (targetPointer.x - pointer.x) * 0.045;
       pointer.y += (targetPointer.y - pointer.y) * 0.045;
@@ -570,7 +618,7 @@ if (stage && canvas && hero) {
     }
 
     function start() {
-      if (!frame && !paused && visible) {
+      if (!frame && !paused && visible && inView) {
         previousTime = 0;
         frame = requestAnimationFrame(render);
       }
@@ -608,6 +656,20 @@ if (stage && canvas && hero) {
       }
     });
 
+    if ("IntersectionObserver" in window) {
+      const sceneObserver = new IntersectionObserver((entries) => {
+        inView = entries.some((entry) => entry.isIntersecting);
+        if (inView) {
+          start();
+        } else if (frame) {
+          cancelAnimationFrame(frame);
+          frame = 0;
+          previousTime = 0;
+        }
+      }, { threshold: 0.01 });
+      sceneObserver.observe(stage);
+    }
+
     if ("ResizeObserver" in window) {
       new ResizeObserver(resize).observe(stage);
     } else {
@@ -622,6 +684,32 @@ if (stage && canvas && hero) {
   } catch (error) {
     console.warn("NVOR black hole scene could not start; showing the animated fallback.", error);
   }
-}
+  };
 
+  const startWhenReady = () => {
+    if (document.hidden) {
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) initializeScene();
+      }, { once: true });
+      return;
+    }
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(initializeScene, { timeout: 1800 });
+    } else {
+      window.setTimeout(initializeScene, 180);
+    }
+  };
+
+  if ("IntersectionObserver" in window) {
+    const loadObserver = new IntersectionObserver((entries, observer) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        startWhenReady();
+      }
+    }, { rootMargin: "120px 0px", threshold: 0.01 });
+    loadObserver.observe(stage);
+  } else {
+    startWhenReady();
+  }
+}
 

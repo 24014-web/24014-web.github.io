@@ -24,6 +24,7 @@
   let currentX = pointerX;
   let currentY = pointerY;
   let scrollFrame = 0;
+  let lastParticleFrame = 0;
 
   const random = (min, max) => Math.random() * (max - min) + min;
 
@@ -48,14 +49,17 @@
     if (!canvas || !context) return;
     width = window.innerWidth;
     height = window.innerHeight;
-    pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const lowPowerDevice = window.matchMedia("(max-width: 720px)").matches
+      || (navigator.hardwareConcurrency || 8) <= 4
+      || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+    pixelRatio = Math.min(window.devicePixelRatio || 1, lowPowerDevice ? 1 : 1.25);
     canvas.width = Math.round(width * pixelRatio);
     canvas.height = Math.round(height * pixelRatio);
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-    const count = Math.min(68, Math.max(24, Math.round((width * height) / 26000)));
+    const count = Math.min(52, Math.max(18, Math.round((width * height) / 39000)));
     particles = Array.from({ length: count }, () => ({
       x: random(0, width),
       y: random(0, height),
@@ -70,23 +74,24 @@
     renderParticles(false);
   }
 
-  function renderParticles(animate, time = 0) {
+  function renderParticles(animate, time = 0, delta = 1) {
     if (!context) return;
     context.clearRect(0, 0, width, height);
-    currentX += (pointerX - currentX) * 0.025;
-    currentY += (pointerY - currentY) * 0.025;
+    const pointerEase = 1 - Math.pow(0.975, delta);
+    currentX += (pointerX - currentX) * pointerEase;
+    currentY += (pointerY - currentY) * pointerEase;
 
     for (let i = 0; i < particles.length; i += 1) {
       const particle = particles[i];
       if (animate) {
-        particle.x += particle.vx;
-        particle.y += particle.vy;
+        particle.x += particle.vx * delta;
+        particle.y += particle.vy * delta;
 
         const dx = particle.x - currentX;
         const dy = particle.y - currentY;
         const distance = Math.hypot(dx, dy);
         if (distance < 115 && distance > 0) {
-          const force = (115 - distance) / 1150;
+          const force = ((115 - distance) / 1150) * delta;
           particle.x += (dx / distance) * force;
           particle.y += (dy / distance) * force;
         }
@@ -105,8 +110,11 @@
 
       for (let j = i + 1; j < particles.length; j += 1) {
         const other = particles[j];
-        const lineDistance = Math.hypot(particle.x - other.x, particle.y - other.y);
-        if (lineDistance < 112) {
+        const dx = particle.x - other.x;
+        const dy = particle.y - other.y;
+        const distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared < 12544) {
+          const lineDistance = Math.sqrt(distanceSquared);
           context.beginPath();
           context.moveTo(particle.x, particle.y);
           context.lineTo(other.x, other.y);
@@ -119,12 +127,21 @@
   }
 
   function tick(time) {
-    renderParticles(true, time);
+    if (time - lastParticleFrame < 1000 / 36) {
+      frame = requestAnimationFrame(tick);
+      return;
+    }
+    const delta = lastParticleFrame ? Math.min((time - lastParticleFrame) / (1000 / 60), 2) : 1;
+    lastParticleFrame = time;
+    renderParticles(true, time, delta);
     frame = requestAnimationFrame(tick);
   }
 
   function startParticles() {
-    if (!frame && !paused && !document.hidden && context) frame = requestAnimationFrame(tick);
+    if (!frame && !paused && !document.hidden && context) {
+      lastParticleFrame = 0;
+      frame = requestAnimationFrame(tick);
+    }
   }
 
   function updateScrollProgress() {
@@ -225,6 +242,7 @@
     if (document.hidden) {
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
+      lastParticleFrame = 0;
     } else if (!paused) {
       startParticles();
     }
