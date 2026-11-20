@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=blackhole-20261120" />
+    <link rel="stylesheet" href="styles.css?v=liquid-orbs-20261120" />
     <script type="importmap">
       {
         "imports": {
@@ -59,7 +59,7 @@
           <div class="hero-copy reveal">
             <p class="eyebrow"><span class="eyebrow-number">01</span><span class="eyebrow-rule"></span>IN THE MAKING</p>
             <h1 id="hero-title">Something<br /><span class="title-muted">good is taking</span><br />shape<span class="title-period">.</span></h1>
-          <p class="hero-description">A new digital space is taking shape — quietly, carefully, and in its own light.</p>
+            <p class="hero-description">A new digital space is taking shape — quietly, carefully, and in its own light.</p>
             <div class="hero-actions">
               <a class="button-primary" href="#note">
                 <span>Take a look around</span>
@@ -69,7 +69,7 @@
             </div>
           </div>
 
-          <div class="hero-art reveal" role="img" aria-label="A rotating black hole with a turbulent, pearlescent accretion disk">
+          <div class="hero-art reveal" role="img" aria-label="Three dark liquid chrome planets orbit a black hole, their surfaces rippling with pearlescent reflections">
             <div class="art-topline"><span>EVENT HORIZON</span><span>LIGHT IN MOTION</span></div>
             <div class="orbit-scene" id="orbitScene" aria-hidden="true">
               <canvas class="three-canvas" id="nvor3d"></canvas>
@@ -79,6 +79,9 @@
                   <span class="fallback-halo"></span>
                   <span class="fallback-photon-ring"></span>
                   <span class="fallback-horizon"></span>
+                  <span class="fallback-orb fallback-orb-one"></span>
+                  <span class="fallback-orb fallback-orb-two"></span>
+                  <span class="fallback-orb fallback-orb-three"></span>
                 </div>
               </div>
             </div>
@@ -106,37 +109,37 @@
           </div>
           <div class="note-content">
             <div class="note-heading reveal">
-              <p class="eyebrow">A LITTLE PATIENCE</p>
-              <h2 id="note-title">Not quite ready.<br /><em>Getting there.</em></h2>
+              <p class="eyebrow">ORBITAL INDEX</p>
+              <h2 id="note-title">Worlds in motion.<br /><em>Light in orbit.</em></h2>
             </div>
             <div class="note-copy reveal">
-              <p>Good things start as a flicker. We’re gathering the right pieces and giving them the space to become something worth returning to.</p>
-              <p>For now, consider this a quiet hello. Come back soon and see what takes shape.</p>
+              <p>Three liquid chrome worlds circle a quiet center. Their surfaces fold and ripple as the light moves across them.</p>
+              <p>Focus an orbital record below to bring that world forward in the scene.</p>
               <a class="text-link" href="#top"><span>Back to the beginning</span><span aria-hidden="true">↗</span></a>
             </div>
           </div>
 
           <div class="principle-grid">
-            <article class="principle-card reveal" data-tilt>
-              <div class="card-top"><span>01 / THE FEELING</span><span class="card-mark">✳</span></div>
+            <article class="principle-card reveal" data-tilt data-orb-focus="0" tabindex="0">
+              <div class="card-top"><span>01 / INNER ORBIT</span><span class="card-mark">◉</span></div>
               <div class="card-rule"></div>
-              <h3>Room to breathe.</h3>
-              <p>Less noise. More space for what matters.</p>
-              <span class="card-index">N—01</span>
+              <h3>Luma</h3>
+              <p>Dark chrome folds into thin-film color.</p>
+              <span class="card-index">TIDAL—01</span>
             </article>
-            <article class="principle-card reveal" data-tilt>
-              <div class="card-top"><span>02 / THE INTENT</span><span class="card-mark">◌</span></div>
+            <article class="principle-card reveal" data-tilt data-orb-focus="1" tabindex="0">
+              <div class="card-top"><span>02 / MID ORBIT</span><span class="card-mark">◌</span></div>
               <div class="card-rule"></div>
-              <h3>Made with care.</h3>
-              <p>Thoughtful details, considered slowly.</p>
-              <span class="card-index">N—02</span>
+              <h3>Nyx</h3>
+              <p>Viscous ripples catch the moving lights.</p>
+              <span class="card-index">CHROMA—02</span>
             </article>
-            <article class="principle-card reveal" data-tilt>
-              <div class="card-top"><span>03 / THE TIMING</span><span class="card-mark">↗</span></div>
+            <article class="principle-card reveal" data-tilt data-orb-focus="2" tabindex="0">
+              <div class="card-top"><span>03 / OUTER ORBIT</span><span class="card-mark">↗</span></div>
               <div class="card-rule"></div>
-              <h3>On its own time.</h3>
-              <p>Some things are better when they’re ready.</p>
-              <span class="card-index">N—03</span>
+              <h3>Veyra</h3>
+              <p>A small world turning at the edge of gravity.</p>
+              <span class="card-index">ORBIT—03</span>
             </article>
           </div>
         </section>
@@ -160,4 +163,5 @@
     </div>
   </body>
 </html>
+
 
