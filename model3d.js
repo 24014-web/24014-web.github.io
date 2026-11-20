@@ -105,6 +105,7 @@ if (stage && canvas && hero) {
       "precision highp float;",
       "uniform float uTime;",
       "uniform float uPhase;",
+      "uniform float uOpacity;",
       "varying vec2 vUv;",
       "varying float vAngle;",
       "float hash(vec2 p) {",
@@ -148,18 +149,19 @@ if (stage && canvas && hero) {
       "  color = mix(color, vec3(0.87, 0.95, 1.0), (1.0 - smoothstep(0.0, 0.26, radius)) * 0.8);",
       "  float detail = 0.18 + cloud * 0.72 + turbulence * 0.42 + filament * 0.62;",
       "  float alpha = innerFade * outerFade * (0.28 + cloud * 0.42 + turbulence * 0.36 + filament * 0.42);",
-      "  gl_FragColor = vec4(color * detail * 1.5, alpha);",
+      "  gl_FragColor = vec4(color * detail * 1.18 * uOpacity, alpha * uOpacity);",
       "}",
     ].join("\n");
 
     const disks = [];
     [
-      { inner: 0.72, outer: 2.82, phase: 0.0, z: -0.045, opacity: 1.0 },
-      { inner: 0.82, outer: 2.54, phase: 2.4, z: 0.035, opacity: 0.68 },
+      { inner: 0.72, outer: 2.82, phase: 0.0, z: -0.045, opacity: 0.78 },
+      { inner: 0.82, outer: 2.54, phase: 2.4, z: 0.035, opacity: 0.58 },
     ].forEach((layer) => {
       const uniforms = {
         uTime: { value: 0 },
         uPhase: { value: layer.phase },
+        uOpacity: { value: layer.opacity },
       };
       const material = new THREE.ShaderMaterial({
         uniforms,
@@ -308,13 +310,209 @@ if (stage && canvas && hero) {
     outerRing.rotation.set(0.12, -0.2, 0);
     scene.add(outerRing);
 
+    const liquidShaderCommon = [
+      "uniform float uRippleTime;",
+      "uniform float uRipplePhase;",
+      "uniform float uRippleScale;",
+      "uniform float uRippleStrength;",
+      "varying vec3 vLiquidPosition;",
+      "float liquidHash(vec3 p) {",
+      "  p = fract(p * 0.1031);",
+      "  p += dot(p, p.yzx + 33.33);",
+      "  return fract((p.x + p.y) * p.z);",
+      "}",
+      "float liquidNoise(vec3 p) {",
+      "  vec3 i = floor(p);",
+      "  vec3 f = fract(p);",
+      "  f = f * f * (3.0 - 2.0 * f);",
+      "  float n000 = liquidHash(i + vec3(0.0, 0.0, 0.0));",
+      "  float n100 = liquidHash(i + vec3(1.0, 0.0, 0.0));",
+      "  float n010 = liquidHash(i + vec3(0.0, 1.0, 0.0));",
+      "  float n110 = liquidHash(i + vec3(1.0, 1.0, 0.0));",
+      "  float n001 = liquidHash(i + vec3(0.0, 0.0, 1.0));",
+      "  float n101 = liquidHash(i + vec3(1.0, 0.0, 1.0));",
+      "  float n011 = liquidHash(i + vec3(0.0, 1.0, 1.0));",
+      "  float n111 = liquidHash(i + vec3(1.0, 1.0, 1.0));",
+      "  float z0 = mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y);",
+      "  float z1 = mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y);",
+      "  return mix(z0, z1, f.z);",
+      "}",
+      "float liquidFbm(vec3 p) {",
+      "  float value = 0.0;",
+      "  float amplitude = 0.5;",
+      "  for (int i = 0; i < 4; i++) {",
+      "    value += liquidNoise(p) * amplitude;",
+      "    p = p * 2.03 + vec3(11.7, 7.3, 5.9);",
+      "    amplitude *= 0.5;",
+      "  }",
+      "  return value;",
+      "}",
+      "float liquidHeight(vec3 p) {",
+      "  vec3 q = p * uRippleScale;",
+      "  float t = uRippleTime;",
+      "  float broad = sin(dot(q, vec3(2.4, 3.1, 2.8)) + sin(q.z * 2.8 + q.x * 1.7 + t * 0.25) * 0.85 - t * 0.38 + uRipplePhase);",
+      "  float grain = liquidFbm(q * 1.65 + vec3(-t * 0.14, t * 0.12, uRipplePhase * 0.7));",
+      "  float fold = sin(q.y * 4.4 - q.z * 3.2 + grain * 3.0 + t * 0.42);",
+      "  float ridge = 1.0 - abs(sin(q.x * 2.8 + q.y * 1.5 + q.z * 3.3 + grain * 2.2 + t * 0.24));",
+      "  return uRippleStrength * (broad * 0.58 + fold * 0.22 + (grain - 0.5) * 0.34 + (ridge - 0.5) * 0.11);",
+      "}",
+    ].join("\n");
+
+    const planetGeometry = new THREE.SphereGeometry(1, 64, 48);
+    const planets = [];
+    const planetSpecs = [
+      { name: "Luma", radius: 1.52, size: 0.23, tiltX: 0.68, tiltY: 0.12, speed: 0.34, spin: 0.7, phase: 0.3, rippleScale: 3.2, rippleStrength: 0.066, color: 0x17151f, tint: 0xa78cff },
+      { name: "Nyx", radius: 2.06, size: 0.255, tiltX: 1.22, tiltY: -0.35, speed: -0.255, spin: -0.56, phase: 2.2, rippleScale: 3.7, rippleStrength: 0.06, color: 0x171b23, tint: 0x7fe8ff },
+      { name: "Veyra", radius: 2.54, size: 0.22, tiltX: 0.91, tiltY: 0.42, speed: 0.19, spin: 0.48, phase: 4.5, rippleScale: 3.45, rippleStrength: 0.07, color: 0x1b141e, tint: 0xf68bd6 },
+    ];
+
+    planetSpecs.forEach((spec, index) => {
+      const orbit = new THREE.Group();
+      scene.add(orbit);
+
+      const pathMaterial = new THREE.MeshPhysicalMaterial({
+        color: spec.tint,
+        metalness: 0.82,
+        roughness: 0.2,
+        clearcoat: 0.9,
+        clearcoatRoughness: 0.09,
+        iridescence: 0.84,
+        iridescenceThicknessMinimum: 200,
+        iridescenceThicknessMaximum: 570,
+        envMapIntensity: 1.5,
+        emissive: spec.tint,
+        emissiveIntensity: 0.06,
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false,
+      });
+      const path = new THREE.Mesh(
+        new THREE.TorusGeometry(spec.radius, index === 1 ? 0.003 : 0.0022, 8, 180),
+        pathMaterial,
+      );
+      orbit.add(path);
+
+      const rippleUniforms = {
+        uRippleTime: { value: 0 },
+        uRipplePhase: { value: spec.phase },
+        uRippleScale: { value: spec.rippleScale },
+        uRippleStrength: { value: spec.rippleStrength },
+      };
+      const material = new THREE.MeshPhysicalMaterial({
+        color: spec.color,
+        metalness: 0.94,
+        roughness: 0.12,
+        clearcoat: 1,
+        clearcoatRoughness: 0.035,
+        reflectivity: 1,
+        iridescence: 0.96,
+        iridescenceIOR: 1.38,
+        iridescenceThicknessMinimum: 250,
+        iridescenceThicknessMaximum: 720,
+        envMapIntensity: 1.3,
+        emissive: spec.tint,
+        emissiveIntensity: 0.012,
+      });
+      material.onBeforeCompile = (shader) => {
+        Object.assign(shader.uniforms, rippleUniforms);
+        shader.vertexShader = shader.vertexShader
+          .replace(
+            "#include <common>",
+            "#include <common>\n" + liquidShaderCommon,
+          )
+          .replace(
+            "#include <beginnormal_vertex>",
+            [
+              "#include <beginnormal_vertex>",
+              "vec3 liquidN0 = normalize(objectNormal);",
+              "vec3 liquidHelper = abs(liquidN0.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);",
+              "vec3 liquidTangent = normalize(cross(liquidHelper, liquidN0));",
+              "vec3 liquidBitangent = normalize(cross(liquidN0, liquidTangent));",
+              "float liquidEpsilon = 0.018;",
+              "float liquidBaseHeight = liquidHeight(position);",
+              "float liquidSlopeT = (liquidHeight(position + liquidTangent * liquidEpsilon) - liquidBaseHeight) / liquidEpsilon;",
+              "float liquidSlopeB = (liquidHeight(position + liquidBitangent * liquidEpsilon) - liquidBaseHeight) / liquidEpsilon;",
+              "objectNormal = normalize(liquidN0 - liquidTangent * liquidSlopeT - liquidBitangent * liquidSlopeB);",
+            ].join("\n"),
+          )
+          .replace(
+            "#include <begin_vertex>",
+            [
+              "#include <begin_vertex>",
+              "vLiquidPosition = position;",
+              "transformed += normalize(normal) * liquidHeight(position);",
+            ].join("\n"),
+          );
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            "#include <common>",
+            "#include <common>\n" + liquidShaderCommon,
+          )
+          .replace(
+            "#include <roughnessmap_fragment>",
+            [
+              "#include <roughnessmap_fragment>",
+              "float liquidMicrofold = liquidFbm(vLiquidPosition * uRippleScale * 0.62 + vec3(uRippleTime * 0.18, uRipplePhase, 0.0));",
+              "roughnessFactor = clamp(roughnessFactor + (liquidMicrofold - 0.5) * 0.055, 0.065, 0.2);",
+            ].join("\n"),
+          )
+          .replace(
+            "#include <opaque_fragment>",
+            [
+              "float liquidFacing = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);",
+              "float liquidFilmNoise = liquidFbm(vLiquidPosition * uRippleScale * 0.72 + vec3(uRippleTime * 0.16, uRipplePhase, 0.0));",
+              "float liquidGlint = pow(max(0.0, sin(liquidFilmNoise * 15.0 + uRippleTime * 0.3 + uRipplePhase)), 18.0);",
+              "vec3 liquidFilmColor = 0.52 + 0.48 * cos(6.2831853 * (uRipplePhase + liquidFacing * 0.6 + liquidFilmNoise * 0.12 + vec3(0.0, 0.34, 0.67)));",
+              "float liquidFilmMask = smoothstep(0.34, 0.94, liquidFacing) * (0.16 + liquidGlint * 0.84);",
+              "outgoingLight = mix(outgoingLight, outgoingLight * 0.42 + liquidFilmColor * 0.62, liquidFilmMask * 0.36);",
+              "outgoingLight += liquidFilmColor * liquidGlint * liquidFacing * 0.22;",
+              "#include <opaque_fragment>",
+            ].join("\n"),
+          );
+        material.userData.liquidShader = shader;
+      };
+      material.customProgramCacheKey = () => "nvor-liquid-chrome-orb-v1";
+      material.userData.rippleUniforms = rippleUniforms;
+
+      const body = new THREE.Mesh(planetGeometry, material);
+      body.scale.setScalar(spec.size);
+      body.position.set(spec.radius, 0, 0);
+      orbit.add(body);
+      planets.push({
+        name: spec.name,
+        group: orbit,
+        path,
+        body,
+        material,
+        spec,
+        baseOpacity: pathMaterial.opacity,
+      });
+    });
+
     const pointer = { x: 0, y: 0 };
     const targetPointer = { x: 0, y: 0 };
+    let selectedPlanet = -1;
     let frame = 0;
     let paused = document.documentElement.classList.contains("motion-paused");
     let visible = !document.hidden;
     let previousTime = 0;
     let elapsed = 0;
+
+    document.querySelectorAll("[data-orb-focus]").forEach((card) => {
+      const index = Number(card.dataset.orbFocus);
+      card.addEventListener("pointerenter", () => {
+        selectedPlanet = index;
+      });
+      card.addEventListener("pointerleave", () => {
+        if (document.activeElement !== card) selectedPlanet = -1;
+      });
+      card.addEventListener("focus", () => {
+        selectedPlanet = index;
+      });
+      card.addEventListener("blur", () => {
+        if (!card.matches(":hover")) selectedPlanet = -1;
+      });
+    });
 
     function resize() {
       const bounds = stage.getBoundingClientRect();
@@ -341,6 +539,24 @@ if (stage && canvas && hero) {
       diskGroup.rotation.y = -0.1 + pointer.x * 0.06;
       disks.forEach((disk) => {
         disk.material.uniforms.uTime.value = elapsed * disk.speed;
+      });
+      planets.forEach((planet, index) => {
+        const { spec, group, body, material, path } = planet;
+        group.rotation.set(
+          spec.tiltX + pointer.y * 0.045,
+          spec.tiltY + pointer.x * 0.035,
+          spec.phase + elapsed * spec.speed,
+        );
+        body.rotation.set(elapsed * spec.spin, elapsed * spec.spin * -0.72, spec.phase * 0.16);
+        material.userData.rippleUniforms.uRippleTime.value = elapsed * 0.82;
+        const selected = index === selectedPlanet;
+        const targetScale = spec.size * (selected ? 1.18 : 1.0);
+        body.scale.x += (targetScale - body.scale.x) * 0.1;
+        body.scale.y += (targetScale - body.scale.y) * 0.1;
+        body.scale.z += (targetScale - body.scale.z) * 0.1;
+        material.emissiveIntensity = selected ? 0.095 : 0.012;
+        path.material.opacity = selected ? 0.42 : planet.baseOpacity;
+        path.material.emissiveIntensity = selected ? 0.28 : 0.06;
       });
 
       keyLight.position.set(-3.8 + pointer.x * 2.8, 4.8 - pointer.y * 1.5, 5.8);
@@ -407,4 +623,5 @@ if (stage && canvas && hero) {
     console.warn("NVOR black hole scene could not start; showing the animated fallback.", error);
   }
 }
+
 
