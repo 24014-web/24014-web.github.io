@@ -1772,9 +1772,50 @@ body {
   box-shadow: 0 0 42px rgba(7, 5, 14, 0.95), inset 0 0 14px #000;
 }
 
+.fallback-orb {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: clamp(17px, 3.4vw, 30px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(226, 237, 255, 0.72);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 31% 22%, rgba(255, 255, 255, 0.98), transparent 20%),
+    conic-gradient(from 35deg, #10131c, #b9a1ff 19%, #0b1c28 33%, #5be8ff 52%, #13121c 69%, #f88bd8 83%, #10131c);
+  box-shadow:
+    inset -5px -7px 10px rgba(0, 0, 0, 0.9),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.55),
+    0 0 17px rgba(142, 191, 255, 0.38);
+}
+
+.fallback-orb-one {
+  transform: translate(-50%, -50%) translate(-165px, -46px);
+}
+
+.fallback-orb-two {
+  width: clamp(20px, 4vw, 35px);
+  transform: translate(-50%, -50%) translate(179px, 35px);
+}
+
+.fallback-orb-three {
+  transform: translate(-50%, -50%) translate(34px, -126px);
+}
+
+.principle-card {
+  cursor: pointer;
+}
+
+.principle-card:focus-visible {
+  outline: 1px solid rgba(193, 225, 255, 0.8);
+  outline-offset: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .three-canvas {
     transition: none;
   }
 }
+
 
