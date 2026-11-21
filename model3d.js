@@ -89,92 +89,123 @@ if (stage && canvas && hero) {
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
       geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
       geometry.setIndex(indices);
-      geometry.computeVertexNormals();
       return geometry;
     }
 
     const diskVertexShader = [
       "uniform float uTime;",
-      "uniform float uPhase;",
       "varying vec2 vUv;",
-      "varying float vAngle;",
       "void main() {",
       "  vec3 p = position;",
       "  float a = atan(p.y, p.x);",
       "  float r = length(p.xy);",
-      "  float warp = sin(a * 2.0 - uTime * 0.9 + r * 3.4 + uPhase) * 0.055;",
-      "  warp += sin(a * 7.0 + uTime * 0.56 + r * 8.0 + uPhase) * 0.018;",
-      "  p.z += warp * (0.5 + vUv.y * 0.5);",
+      "  float warp = sin(a * 2.0 - uTime * 0.9 + r * 3.4) * 0.012;",
+      "  warp += sin(a * 7.0 + uTime * 0.56 + r * 8.0) * 0.004;",
+      "  p.z += warp * (0.5 + uv.y * 0.5);",
       "  vUv = uv;",
-      "  vAngle = a;",
       "  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);",
       "}",
     ].join("\n");
 
+    function makeFlowNoiseTexture(size = 128) {
+      const data = new Uint8Array(size * size * 4);
+      const hash = (x, y) => {
+        let value = (Math.imul(x, 374761393) ^ Math.imul(y, 668265263)) >>> 0;
+        value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
+        value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
+        value = (value ^ (value >>> 16)) >>> 0;
+        return value / 4294967295;
+      };
+      const wrap = (value, period) => ((value % period) + period) % period;
+      const periodicNoise = (u, v, periodU, periodV) => {
+        const x = u * periodU;
+        const y = v * periodV;
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const tx = x - x0;
+        const ty = y - y0;
+        const sx = tx * tx * (3 - 2 * tx);
+        const sy = ty * ty * (3 - 2 * ty);
+        const a = hash(wrap(x0, periodU), wrap(y0, periodV));
+        const b = hash(wrap(x0 + 1, periodU), wrap(y0, periodV));
+        const c = hash(wrap(x0, periodU), wrap(y0 + 1, periodV));
+        const d = hash(wrap(x0 + 1, periodU), wrap(y0 + 1, periodV));
+        return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+      };
+      const octaveNoise = (u, v, baseU, baseV) => (
+        periodicNoise(u, v, baseU, baseV) * 0.56
+        + periodicNoise(u, v, baseU * 2, baseV * 2) * 0.29
+        + periodicNoise(u, v, baseU * 4, baseV * 4) * 0.15
+      );
+
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          const u = x / size;
+          const v = y / size;
+          const offset = (y * size + x) * 4;
+          data[offset] = Math.round(octaveNoise(u, v, 4, 4) * 255);
+          data[offset + 1] = Math.round(octaveNoise(u, v, 8, 8) * 255);
+          data[offset + 2] = Math.round(octaveNoise(u, v, 16, 16) * 255);
+          data[offset + 3] = 255;
+        }
+      }
+
+      const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.generateMipmaps = true;
+      texture.colorSpace = THREE.NoColorSpace;
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    const flowNoiseTexture = makeFlowNoiseTexture();
     const diskFragmentShader = [
       "precision highp float;",
       "uniform float uTime;",
-      "uniform float uPhase;",
       "uniform float uOpacity;",
+      "uniform sampler2D uFlowNoise;",
       "varying vec2 vUv;",
-      "varying float vAngle;",
-      "float hash(vec2 p) {",
-      "  p = fract(p * vec2(123.34, 456.21));",
-      "  p += dot(p, p + 45.32);",
-      "  return fract(p.x * p.y);",
-      "}",
-      "float noise(vec2 p) {",
-      "  vec2 i = floor(p);",
-      "  vec2 f = fract(p);",
-      "  f = f * f * (3.0 - 2.0 * f);",
-      "  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),",
-      "    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);",
-      "}",
-      "float fbm(vec2 p) {",
-      "  float value = 0.0;",
-      "  float amplitude = 0.5;",
-      "  for (int i = 0; i < 3; i++) {",
-      "    value += noise(p) * amplitude;",
-      "    p = p * 2.03 + vec2(17.1, 9.2);",
-      "    amplitude *= 0.5;",
-      "  }",
-      "  return value;",
-      "}",
-      "vec3 spectrum(float t) {",
-      "  return 0.52 + 0.48 * cos(6.2831853 * (t + vec3(0.0, 0.34, 0.67)));",
-      "}",
       "void main() {",
       "  float angle = vUv.x * 6.2831853;",
       "  float radius = vUv.y;",
-      "  vec2 flow = vec2(cos(angle * 3.0), sin(angle * 3.0)) * 3.3 + vec2(uTime * 0.4 + uPhase, radius * 19.0 - uTime * 0.8);",
-      "  float cloud = fbm(flow);",
-      "  vec2 turbulenceUv = vec2(cos(angle * 5.0), sin(angle * 5.0)) * 11.0 + vec2(-uTime * 0.22 + cloud * 2.4, radius * 36.0 + uTime * 0.65);",
-      "  float turbulence = noise(turbulenceUv) * 0.68 + noise(turbulenceUv * 1.91 + 7.3) * 0.32;",
-      "  float filament = pow(max(0.0, sin(angle * 27.0 + cloud * 7.0 - radius * 31.0 - uTime * 1.8 + uPhase)), 9.0);",
-      "  float innerFade = smoothstep(0.0, 0.075, radius);",
-      "  float outerFade = 1.0 - smoothstep(0.87, 1.0, radius);",
-      "  float hue = fract(0.52 + sin(angle + radius * 2.4 + cloud * 1.9 - uTime * 0.07 + uPhase) * 0.19 + radius * 0.19 + turbulence * 0.17 + uPhase * 0.08 + uTime * 0.012);",
-      "  vec3 color = spectrum(hue);",
-      "  float chromaFlow = 0.5 + 0.5 * sin(angle * 2.0 - uTime * 0.35 + radius * 5.6 + cloud * 3.0 + turbulence * 2.0 + uPhase);",
-      "  float blueFlow = 0.5 + 0.5 * sin(angle + uTime * 0.22 - radius * 3.4 + turbulence * 3.0 + uPhase);",
-      "  color = mix(color, vec3(0.12, 0.42, 0.96), blueFlow * 0.24);",
-      "  color = mix(color, vec3(0.92, 0.26, 0.76), (1.0 - blueFlow) * 0.13 + chromaFlow * 0.1);",
-      "  color = mix(color, vec3(0.87, 0.95, 1.0), (1.0 - smoothstep(0.0, 0.26, radius)) * 0.8);",
-      "  float detail = 0.18 + cloud * 0.72 + turbulence * 0.42 + filament * 0.62;",
-      "  float alpha = innerFade * outerFade * (0.28 + cloud * 0.42 + turbulence * 0.36 + filament * 0.42);",
-      "  gl_FragColor = vec4(color * detail * 1.18 * uOpacity, alpha * uOpacity);",
+      "  float orbitRate = 0.16 + 0.84 * pow(1.0 - radius, 1.5);",
+      "  float flowAngle = angle - uTime * orbitRate;",
+      "  vec2 flowUv = vec2(flowAngle / 6.2831853, radius);",
+      "  vec3 broadNoise = texture2D(uFlowNoise, flowUv).rgb;",
+      "  vec3 fineNoise = texture2D(uFlowNoise, flowUv * vec2(2.35, 1.85) + vec2(uTime * 0.009, -uTime * 0.016)).rgb;",
+      "  float warp = (broadNoise.r - 0.5) * 3.1 + (fineNoise.g - 0.5) * 1.8;",
+      "  float spiralA = sin(flowAngle * 4.2 + log(0.2 + radius * 0.8) * 6.4 + warp * 1.25);",
+      "  float spiralB = sin(flowAngle * 7.0 - log(0.2 + radius * 0.8) * 4.2 + (broadNoise.g - 0.5) * 3.2 + uTime * 0.24);",
+      "  float ribbonA = exp(-abs(spiralA) * 3.2);",
+      "  float ribbonB = exp(-abs(spiralB) * 3.8);",
+      "  float turbulence = broadNoise.r * 0.48 + broadNoise.g * 0.32 + fineNoise.b * 0.2;",
+      "  float filaments = ribbonA * 0.68 + ribbonB * 0.32;",
+      "  float heat = pow(1.0 - radius, 1.25);",
+      "  float edgeFade = smoothstep(0.0, 0.035, radius) * (1.0 - smoothstep(0.88, 1.0, radius));",
+      "  float innerRim = exp(-radius * 18.0);",
+      "  float mass = 0.34 + turbulence * 0.6 + filaments * 0.5;",
+      "  float emission = mass * (1.2 + heat * 2.2 + innerRim * 0.95);",
+      "  float approaching = sin(angle);",
+      "  vec3 color = mix(vec3(0.2, 0.15, 0.62), vec3(0.22, 0.48, 1.0), broadNoise.b * 0.72);",
+      "  color = mix(color, vec3(0.62, 0.16, 0.58), smoothstep(0.12, 0.94, -approaching) * 0.46);",
+      "  color = mix(color, vec3(0.58, 0.88, 1.0), smoothstep(-0.18, 0.82, approaching) * 0.5);",
+      "  color = mix(color, vec3(0.9, 0.94, 1.0), (1.0 - smoothstep(0.0, 0.26, radius)) * 0.72);",
+      "  float alpha = edgeFade * (0.34 + turbulence * 0.16 + filaments * 0.12);",
+      "  gl_FragColor = vec4(color * emission * uOpacity, alpha * uOpacity);",
       "}",
     ].join("\n");
 
     const disks = [];
     [
-      { inner: 0.72, outer: 2.82, phase: 0.0, z: -0.045, opacity: 0.78 },
-      { inner: 0.82, outer: 2.54, phase: 2.4, z: 0.035, opacity: 0.58 },
+      { inner: 0.72, outer: 2.82, z: -0.045, opacity: 0.96 },
     ].forEach((layer) => {
       const uniforms = {
         uTime: { value: 0 },
-        uPhase: { value: layer.phase },
         uOpacity: { value: layer.opacity },
+        uFlowNoise: { value: flowNoiseTexture },
       };
       const material = new THREE.ShaderMaterial({
         uniforms,
@@ -183,7 +214,7 @@ if (stage && canvas && hero) {
         transparent: true,
         opacity: layer.opacity,
         depthWrite: false,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
         blending: THREE.AdditiveBlending,
         toneMapped: false,
       });
@@ -193,57 +224,113 @@ if (stage && canvas && hero) {
       );
       mesh.position.z = layer.z;
       diskGroup.add(mesh);
-      disks.push({ material, speed: layer.phase === 0 ? 1 : 1.24 });
+      disks.push({ material });
     });
 
-    const dustCount = 420;
-    const dustPositions = new Float32Array(dustCount * 3);
-    const dustColors = new Float32Array(dustCount * 3);
-    const dustSizes = new Float32Array(dustCount);
-    const dustPalette = [
-      new THREE.Color(0x71deff),
-      new THREE.Color(0xb9a1ff),
-      new THREE.Color(0xff8cdb),
-      new THREE.Color(0xeaf6ff),
-    ];
-    for (let i = 0; i < dustCount; i += 1) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 0.93 + Math.random() * 2.08;
+    const particleCount = compactDevice ? 8000 : lowPowerDevice ? 11000 : 15000;
+    const innerParticleRadius = 0.88;
+    const outerParticleRadius = 2.74;
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleSizes = new Float32Array(particleCount);
+    const particleSpeeds = new Float32Array(particleCount);
+    const particleHeat = new Float32Array(particleCount);
+    const particlePhases = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i += 1) {
       const offset = i * 3;
-      dustPositions[offset] = Math.cos(angle) * radius;
-      dustPositions[offset + 1] = Math.sin(angle) * radius;
-      dustPositions[offset + 2] = (Math.random() - 0.5) * 0.13;
-      const color = dustPalette[Math.floor(Math.random() * dustPalette.length)];
-      dustColors[offset] = color.r;
-      dustColors[offset + 1] = color.g;
-      dustColors[offset + 2] = color.b;
-      dustSizes[i] = 0.025 + Math.random() * 0.052;
+      const radialProgress = Math.pow(Math.random(), 1.7);
+      const radius = innerParticleRadius + (outerParticleRadius - innerParticleRadius) * radialProgress;
+      const useSpiralLane = Math.random() < 0.88;
+      const lane = Math.floor(Math.random() * 5);
+      const laneJitter = (Math.random() - 0.5) * (0.16 + radialProgress * 0.22);
+      const angle = useSpiralLane
+        ? lane * (Math.PI * 2 / 5) + radialProgress * 1.3 + laneJitter
+        : Math.random() * Math.PI * 2;
+      const heat = 1 - Math.sqrt(radialProgress);
+      const height = (Math.random() - 0.5) * (0.018 + (1 - heat) * 0.032);
+      const phase = Math.random() * Math.PI * 2;
+      // Kepler-style angular acceleration is a visual cue; scene units are not a full GR simulation.
+      const angularSpeed = Math.min(2.7, 2.55 * Math.pow(innerParticleRadius / radius, 1.5));
+      particleSizes[i] = 0.075 + Math.random() * 0.045;
+      particleSpeeds[i] = angularSpeed;
+      particleHeat[i] = heat;
+      particlePhases[i] = phase;
+      // Pack radius, starting angle, and height into one attribute.
+      particlePositions[offset] = radius;
+      particlePositions[offset + 1] = angle;
+      particlePositions[offset + 2] = height;
     }
-    const dustGeometry = new THREE.BufferGeometry();
-    dustGeometry.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
-    dustGeometry.setAttribute("aColor", new THREE.BufferAttribute(dustColors, 3));
-    dustGeometry.setAttribute("aSize", new THREE.BufferAttribute(dustSizes, 1));
-    const dustMaterial = new THREE.ShaderMaterial({
-      uniforms: { uPixelRatio: { value: renderer.getPixelRatio() } },
+
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+    particleGeometry.setAttribute("aSize", new THREE.BufferAttribute(particleSizes, 1));
+    particleGeometry.setAttribute("aSpeed", new THREE.BufferAttribute(particleSpeeds, 1));
+    particleGeometry.setAttribute("aHeat", new THREE.BufferAttribute(particleHeat, 1));
+    particleGeometry.setAttribute("aPhase", new THREE.BufferAttribute(particlePhases, 1));
+    particleGeometry.boundingSphere = new THREE.Sphere(
+      new THREE.Vector3(0, 0, 0),
+      outerParticleRadius + 0.18,
+    );
+
+    const particleUniforms = {
+      uTime: { value: 0 },
+      uPixelRatio: { value: activePixelRatio },
+      uViewport: { value: new THREE.Vector2(1, 1) },
+    };
+    const particleMaterial = new THREE.ShaderMaterial({
+      uniforms: particleUniforms,
       vertexShader: [
-        "attribute vec3 aColor;",
         "attribute float aSize;",
+        "attribute float aSpeed;",
+        "attribute float aHeat;",
+        "attribute float aPhase;",
+        "uniform float uTime;",
         "uniform float uPixelRatio;",
+        "uniform vec2 uViewport;",
+        "varying vec2 vDirection;",
         "varying vec3 vColor;",
+        "varying float vHeat;",
+        "varying float vDoppler;",
         "void main() {",
-        "  vColor = aColor;",
-        "  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);",
-        "  gl_PointSize = aSize * uPixelRatio * 280.0 / max(1.0, -mvPosition.z);",
-        "  gl_Position = projectionMatrix * mvPosition;",
+        "  float angle = position.y + uTime * aSpeed;",
+        "  float radius = position.x;",
+        "  float height = position.z + sin(uTime * 0.34 + aPhase) * 0.003;",
+        "  vec3 orbitPosition = vec3(cos(angle) * radius, sin(angle) * radius, height);",
+        "  vec3 tangent = vec3(-sin(angle), cos(angle), 0.0);",
+        "  vec4 mvPosition = modelViewMatrix * vec4(orbitPosition, 1.0);",
+        "  vec4 clipPosition = projectionMatrix * mvPosition;",
+        "  vec4 clipTangent = projectionMatrix * modelViewMatrix * vec4(orbitPosition + tangent * 0.035, 1.0);",
+        "  vec2 tangentPixels = (clipTangent.xy / clipTangent.w - clipPosition.xy / clipPosition.w) * uViewport;",
+        "  float tangentLength = length(tangentPixels);",
+        "  vDirection = tangentLength > 0.00001 ? tangentPixels / tangentLength : vec2(1.0, 0.0);",
+        "  vec3 tangentView = normalize(mat3(modelViewMatrix) * tangent);",
+        "  float approaching = dot(tangentView, normalize(-mvPosition.xyz));",
+        "  vHeat = aHeat;",
+        "  vDoppler = clamp(1.0 + approaching * (0.1 + aHeat * 0.48), 0.62, 1.55);",
+        "  vColor = mix(vec3(0.26, 0.22, 0.7), vec3(0.32, 0.7, 1.0), clamp(0.24 + aHeat * 0.64 + approaching * 0.16, 0.0, 1.0));",
+        "  gl_PointSize = clamp(aSize * uPixelRatio * 330.0 * mix(0.82, 1.22, aHeat) / max(1.0, -mvPosition.z), 1.5, 5.5);",
+        "  gl_Position = clipPosition;",
         "}",
       ].join("\n"),
       fragmentShader: [
         "precision highp float;",
+        "varying vec2 vDirection;",
         "varying vec3 vColor;",
+        "varying float vHeat;",
+        "varying float vDoppler;",
         "void main() {",
-        "  float edge = length(gl_PointCoord - vec2(0.5));",
-        "  float alpha = 1.0 - smoothstep(0.08, 0.5, edge);",
-        "  gl_FragColor = vec4(vColor * 1.4, alpha * 0.7);",
+        "  vec2 point = gl_PointCoord * 2.0 - 1.0;",
+        "  vec2 direction = normalize(vDirection);",
+        "  vec2 normal = vec2(-direction.y, direction.x);",
+        "  float along = dot(point, direction);",
+        "  float across = abs(dot(point, normal));",
+        "  float width = mix(0.1, 0.2, vHeat);",
+        "  float acrossFade = 1.0 - smoothstep(width, width * 2.8, across);",
+        "  float tailStart = smoothstep(-0.98, -0.42, along);",
+        "  float tailEnd = 1.0 - smoothstep(0.34, 0.98, along);",
+        "  float streak = acrossFade * tailStart * tailEnd * exp(-max(-along, 0.0) * 1.25);",
+        "  float alpha = streak * (0.14 + vHeat * 0.1);",
+        "  vec3 color = mix(vColor, vec3(0.72, 0.88, 1.0), clamp((vDoppler - 1.0) * 0.48, 0.0, 0.24));",
+        "  gl_FragColor = vec4(color * streak * 0.48 * vDoppler, alpha);",
         "}",
       ].join("\n"),
       transparent: true,
@@ -251,8 +338,8 @@ if (stage && canvas && hero) {
       blending: THREE.AdditiveBlending,
       toneMapped: false,
     });
-    const dust = new THREE.Points(dustGeometry, dustMaterial);
-    diskGroup.add(dust);
+    const accretionParticles = new THREE.Points(particleGeometry, particleMaterial);
+    diskGroup.add(accretionParticles);
 
     const horizon = new THREE.Mesh(
       new THREE.SphereGeometry(0.715, 96, 72),
@@ -549,7 +636,8 @@ if (stage && canvas && hero) {
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      dustMaterial.uniforms.uPixelRatio.value = activePixelRatio;
+      particleUniforms.uPixelRatio.value = activePixelRatio;
+      particleUniforms.uViewport.value.set(canvas.width, canvas.height);
       if (!frame && visible && inView) renderer.render(scene, camera);
     }
 
@@ -586,8 +674,9 @@ if (stage && canvas && hero) {
       diskGroup.rotation.x = 1.07 - pointer.y * 0.08;
       diskGroup.rotation.y = -0.1 + pointer.x * 0.06;
       disks.forEach((disk) => {
-        disk.material.uniforms.uTime.value = elapsed * disk.speed;
+        disk.material.uniforms.uTime.value = elapsed;
       });
+      particleUniforms.uTime.value = elapsed;
       planets.forEach((planet, index) => {
         const { spec, group, body, material, path } = planet;
         group.rotation.set(
