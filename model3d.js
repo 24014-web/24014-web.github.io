@@ -59,7 +59,7 @@ if (stage && canvas && hero) {
     scene.add(violetLight);
 
     const diskGroup = new THREE.Group();
-    diskGroup.rotation.set(1.07, -0.1, 0);
+    diskGroup.rotation.set(1.26, -0.1, 0);
     scene.add(diskGroup);
 
     function makeDiskGeometry(innerRadius, outerRadius, radialSegments, angularSegments) {
@@ -93,108 +93,36 @@ if (stage && canvas && hero) {
     }
 
     const diskVertexShader = [
-      "uniform float uTime;",
       "varying vec2 vUv;",
       "void main() {",
-      "  vec3 p = position;",
-      "  float a = atan(p.y, p.x);",
-      "  float r = length(p.xy);",
-      "  float warp = sin(a * 2.0 - uTime * 0.9 + r * 3.4) * 0.012;",
-      "  warp += sin(a * 7.0 + uTime * 0.56 + r * 8.0) * 0.004;",
-      "  p.z += warp * (0.5 + uv.y * 0.5);",
       "  vUv = uv;",
-      "  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);",
+      "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
       "}",
     ].join("\n");
 
-    function makeFlowNoiseTexture(size = 128) {
-      const data = new Uint8Array(size * size * 4);
-      const hash = (x, y) => {
-        let value = (Math.imul(x, 374761393) ^ Math.imul(y, 668265263)) >>> 0;
-        value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
-        value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
-        value = (value ^ (value >>> 16)) >>> 0;
-        return value / 4294967295;
-      };
-      const wrap = (value, period) => ((value % period) + period) % period;
-      const periodicNoise = (u, v, periodU, periodV) => {
-        const x = u * periodU;
-        const y = v * periodV;
-        const x0 = Math.floor(x);
-        const y0 = Math.floor(y);
-        const tx = x - x0;
-        const ty = y - y0;
-        const sx = tx * tx * (3 - 2 * tx);
-        const sy = ty * ty * (3 - 2 * ty);
-        const a = hash(wrap(x0, periodU), wrap(y0, periodV));
-        const b = hash(wrap(x0 + 1, periodU), wrap(y0, periodV));
-        const c = hash(wrap(x0, periodU), wrap(y0 + 1, periodV));
-        const d = hash(wrap(x0 + 1, periodU), wrap(y0 + 1, periodV));
-        return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
-      };
-      const octaveNoise = (u, v, baseU, baseV) => (
-        periodicNoise(u, v, baseU, baseV) * 0.56
-        + periodicNoise(u, v, baseU * 2, baseV * 2) * 0.29
-        + periodicNoise(u, v, baseU * 4, baseV * 4) * 0.15
-      );
-
-      for (let y = 0; y < size; y += 1) {
-        for (let x = 0; x < size; x += 1) {
-          const u = x / size;
-          const v = y / size;
-          const offset = (y * size + x) * 4;
-          data[offset] = Math.round(octaveNoise(u, v, 4, 4) * 255);
-          data[offset + 1] = Math.round(octaveNoise(u, v, 8, 8) * 255);
-          data[offset + 2] = Math.round(octaveNoise(u, v, 16, 16) * 255);
-          data[offset + 3] = 255;
-        }
-      }
-
-      const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      texture.magFilter = THREE.LinearFilter;
-      texture.minFilter = THREE.LinearMipmapLinearFilter;
-      texture.generateMipmaps = true;
-      texture.colorSpace = THREE.NoColorSpace;
-      texture.needsUpdate = true;
-      return texture;
-    }
-
-    const flowNoiseTexture = makeFlowNoiseTexture();
     const diskFragmentShader = [
       "precision highp float;",
       "uniform float uTime;",
       "uniform float uOpacity;",
-      "uniform sampler2D uFlowNoise;",
       "varying vec2 vUv;",
       "void main() {",
       "  float angle = vUv.x * 6.2831853;",
       "  float radius = vUv.y;",
-      "  float orbitRate = 0.16 + 0.84 * pow(1.0 - radius, 1.5);",
+      "  float orbitRate = 0.14 + 0.86 * pow(1.0 - radius, 1.5);",
       "  float flowAngle = angle - uTime * orbitRate;",
-      "  vec2 flowUv = vec2(flowAngle / 6.2831853, radius);",
-      "  vec3 broadNoise = texture2D(uFlowNoise, flowUv).rgb;",
-      "  vec3 fineNoise = texture2D(uFlowNoise, flowUv * vec2(2.35, 1.85) + vec2(uTime * 0.009, -uTime * 0.016)).rgb;",
-      "  float warp = (broadNoise.r - 0.5) * 3.1 + (fineNoise.g - 0.5) * 1.8;",
-      "  float spiralA = sin(flowAngle * 4.2 + log(0.2 + radius * 0.8) * 6.4 + warp * 1.25);",
-      "  float spiralB = sin(flowAngle * 7.0 - log(0.2 + radius * 0.8) * 4.2 + (broadNoise.g - 0.5) * 3.2 + uTime * 0.24);",
-      "  float ribbonA = exp(-abs(spiralA) * 3.2);",
-      "  float ribbonB = exp(-abs(spiralB) * 3.8);",
-      "  float turbulence = broadNoise.r * 0.48 + broadNoise.g * 0.32 + fineNoise.b * 0.2;",
-      "  float filaments = ribbonA * 0.68 + ribbonB * 0.32;",
-      "  float heat = pow(1.0 - radius, 1.25);",
-      "  float edgeFade = smoothstep(0.0, 0.035, radius) * (1.0 - smoothstep(0.88, 1.0, radius));",
-      "  float innerRim = exp(-radius * 18.0);",
-      "  float mass = 0.34 + turbulence * 0.6 + filaments * 0.5;",
-      "  float emission = mass * (1.2 + heat * 2.2 + innerRim * 0.95);",
+      "  float heat = pow(1.0 - radius, 0.82);",
+      "  float innerRim = exp(-pow((radius - 0.055) / 0.075, 2.0));",
+      "  float edgeFade = smoothstep(0.0, 0.022, radius) * (1.0 - smoothstep(0.87, 1.0, radius));",
       "  float approaching = sin(angle);",
-      "  vec3 color = mix(vec3(0.2, 0.15, 0.62), vec3(0.22, 0.48, 1.0), broadNoise.b * 0.72);",
-      "  color = mix(color, vec3(0.62, 0.16, 0.58), smoothstep(0.12, 0.94, -approaching) * 0.46);",
-      "  color = mix(color, vec3(0.58, 0.88, 1.0), smoothstep(-0.18, 0.82, approaching) * 0.5);",
-      "  color = mix(color, vec3(0.9, 0.94, 1.0), (1.0 - smoothstep(0.0, 0.26, radius)) * 0.72);",
-      "  float alpha = edgeFade * (0.34 + turbulence * 0.16 + filaments * 0.12);",
-      "  gl_FragColor = vec4(color * emission * uOpacity, alpha * uOpacity);",
+      "  float doppler = 0.96 + approaching * 0.08;",
+      "  float flowLobe = 0.97 + 0.03 * sin(flowAngle * 1.25 + radius * 1.6);",
+      "  vec3 color = mix(vec3(1.0, 0.94, 0.78), vec3(1.0, 0.58, 0.2), smoothstep(0.04, 0.72, radius));",
+      "  color = mix(color, vec3(0.84, 0.25, 0.055), smoothstep(0.58, 1.0, radius) * 0.54);",
+      "  color = mix(color, vec3(0.48, 0.66, 1.0), smoothstep(0.76, 1.0, radius) * 0.16);",
+      "  color = mix(color, vec3(1.0, 0.98, 0.9), smoothstep(0.35, 0.95, heat) * 0.34);",
+      "  float radialEmission = (0.42 + heat * 0.7 + innerRim * 1.25) * doppler * flowLobe;",
+      "  float alpha = edgeFade * (0.52 + heat * 0.12 + innerRim * 0.22);",
+      "  gl_FragColor = vec4(color * radialEmission * uOpacity, alpha * uOpacity);",
       "}",
     ].join("\n");
 
@@ -205,7 +133,6 @@ if (stage && canvas && hero) {
       const uniforms = {
         uTime: { value: 0 },
         uOpacity: { value: layer.opacity },
-        uFlowNoise: { value: flowNoiseTexture },
       };
       const material = new THREE.ShaderMaterial({
         uniforms,
@@ -227,7 +154,7 @@ if (stage && canvas && hero) {
       disks.push({ material });
     });
 
-    const particleCount = compactDevice ? 8000 : lowPowerDevice ? 11000 : 15000;
+    const particleCount = compactDevice ? 3500 : lowPowerDevice ? 5000 : 7000;
     const innerParticleRadius = 0.88;
     const outerParticleRadius = 2.74;
     const particlePositions = new Float32Array(particleCount * 3);
@@ -306,7 +233,7 @@ if (stage && canvas && hero) {
         "  float approaching = dot(tangentView, normalize(-mvPosition.xyz));",
         "  vHeat = aHeat;",
         "  vDoppler = clamp(1.0 + approaching * (0.1 + aHeat * 0.48), 0.62, 1.55);",
-        "  vColor = mix(vec3(0.26, 0.22, 0.7), vec3(0.32, 0.7, 1.0), clamp(0.24 + aHeat * 0.64 + approaching * 0.16, 0.0, 1.0));",
+        "  vColor = mix(vec3(0.82, 0.3, 0.08), vec3(1.0, 0.9, 0.68), clamp(0.18 + aHeat * 0.74, 0.0, 1.0));",
         "  gl_PointSize = clamp(aSize * uPixelRatio * 330.0 * mix(0.82, 1.22, aHeat) / max(1.0, -mvPosition.z), 1.5, 5.5);",
         "  gl_Position = clipPosition;",
         "}",
@@ -328,9 +255,9 @@ if (stage && canvas && hero) {
         "  float tailStart = smoothstep(-0.98, -0.42, along);",
         "  float tailEnd = 1.0 - smoothstep(0.34, 0.98, along);",
         "  float streak = acrossFade * tailStart * tailEnd * exp(-max(-along, 0.0) * 1.25);",
-        "  float alpha = streak * (0.14 + vHeat * 0.1);",
+        "  float alpha = streak * (0.08 + vHeat * 0.06);",
         "  vec3 color = mix(vColor, vec3(0.72, 0.88, 1.0), clamp((vDoppler - 1.0) * 0.48, 0.0, 0.24));",
-        "  gl_FragColor = vec4(color * streak * 0.48 * vDoppler, alpha);",
+        "  gl_FragColor = vec4(color * streak * 0.35 * vDoppler, alpha);",
         "}",
       ].join("\n"),
       transparent: true,
@@ -347,23 +274,29 @@ if (stage && canvas && hero) {
     );
     scene.add(horizon);
 
-    const photonRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.785, 0.018, 10, 192),
-      new THREE.MeshPhysicalMaterial({
-        color: 0xe8e5ff,
-        metalness: 0.74,
-        roughness: 0.13,
-        clearcoat: 1,
-        clearcoatRoughness: 0.04,
-        iridescence: 0.96,
-        iridescenceThicknessMinimum: 220,
-        iridescenceThicknessMaximum: 660,
-        envMapIntensity: 2.0,
-        emissive: 0x4f7fff,
-        emissiveIntensity: 0.38,
-      }),
-    );
-    scene.add(photonRing);
+    const lensingArcs = [];
+    [
+      { rotation: 0.38, z: 0.035, radius: 0.82, tube: 0.011, color: 0xfff1d2, opacity: 0.72, speed: -0.003 },
+      { rotation: Math.PI + 0.38, z: -0.025, radius: 0.83, tube: 0.008, color: 0xffb978, opacity: 0.46, speed: 0.002 },
+    ].forEach((spec) => {
+      const material = new THREE.MeshBasicMaterial({
+        color: spec.color,
+        transparent: true,
+        opacity: spec.opacity,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      });
+      const mesh = new THREE.Mesh(
+        new THREE.TorusGeometry(spec.radius, spec.tube, 8, 128, 2.4),
+        material,
+      );
+      mesh.rotation.z = spec.rotation;
+      mesh.position.z = spec.z;
+      scene.add(mesh);
+      lensingArcs.push({ mesh, spec });
+    });
 
     const lensingHalo = new THREE.Mesh(
       new THREE.SphereGeometry(0.82, 72, 56),
@@ -384,8 +317,8 @@ if (stage && canvas && hero) {
           "varying vec3 vView;",
           "void main() {",
           "  float rim = pow(1.0 - max(dot(normalize(vNormal), normalize(vView)), 0.0), 2.5);",
-          "  vec3 color = mix(vec3(0.12, 0.74, 1.0), vec3(0.75, 0.3, 1.0), rim);",
-          "  gl_FragColor = vec4(color * 1.4, rim * 0.58);",
+          "  vec3 color = mix(vec3(0.16, 0.24, 0.42), vec3(1.0, 0.72, 0.42), rim);",
+          "  gl_FragColor = vec4(color * 0.58, rim * 0.24);",
           "}",
         ].join("\n"),
         transparent: true,
@@ -400,9 +333,9 @@ if (stage && canvas && hero) {
     const outerRing = new THREE.Mesh(
       new THREE.TorusGeometry(0.96, 0.004, 8, 192),
       new THREE.MeshBasicMaterial({
-        color: 0x829cff,
+        color: 0xb7c9ed,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.14,
         blending: THREE.AdditiveBlending,
         toneMapped: false,
       }),
@@ -671,7 +604,7 @@ if (stage && canvas && hero) {
       pointer.x += (targetPointer.x - pointer.x) * 0.045;
       pointer.y += (targetPointer.y - pointer.y) * 0.045;
       diskGroup.rotation.z = elapsed * 0.12 + pointer.x * 0.06;
-      diskGroup.rotation.x = 1.07 - pointer.y * 0.08;
+      diskGroup.rotation.x = 1.26 - pointer.y * 0.06;
       diskGroup.rotation.y = -0.1 + pointer.x * 0.06;
       disks.forEach((disk) => {
         disk.material.uniforms.uTime.value = elapsed;
@@ -700,8 +633,10 @@ if (stage && canvas && hero) {
       cyanLight.position.set(3.5 - pointer.x * 1.2, 1.0 + Math.sin(elapsed * 0.4) * 0.7, 2.6);
       roseLight.position.set(-3.2 + Math.sin(elapsed * 0.28) * 0.5, -0.7 + pointer.y, 2.0);
       violetLight.position.set(Math.cos(elapsed * 0.24), 3.6, -1.8);
-      photonRing.rotation.z = elapsed * -0.035;
-      outerRing.rotation.z = elapsed * 0.018;
+      lensingArcs.forEach(({ mesh, spec }) => {
+        mesh.rotation.z = spec.rotation + elapsed * spec.speed;
+      });
+      outerRing.rotation.z = elapsed * 0.008;
       renderer.render(scene, camera);
       frame = requestAnimationFrame(render);
     }
