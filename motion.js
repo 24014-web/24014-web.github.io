@@ -47,7 +47,7 @@
 
   function resizeCanvas() {
     if (!canvas || !context) return;
-    width = window.innerWidth;
+    width = document.documentElement.clientWidth || window.innerWidth;
     height = window.innerHeight;
     const lowPowerDevice = window.matchMedia("(max-width: 720px)").matches
       || (navigator.hardwareConcurrency || 8) <= 4
@@ -59,16 +59,17 @@
     canvas.style.height = `${height}px`;
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-    const count = Math.min(52, Math.max(18, Math.round((width * height) / 39000)));
+    const count = Math.min(42, Math.max(14, Math.round((width * height) / 52000)));
     particles = Array.from({ length: count }, () => ({
       x: random(0, width),
       y: random(0, height),
-      vx: random(-0.1, 0.1),
-      vy: random(-0.08, 0.08),
-      radius: random(0.35, 1.25),
-      alpha: random(0.13, 0.48),
+      vx: random(-0.025, 0.025),
+      vy: random(-0.02, 0.02),
+      radius: random(0.25, 0.95),
+      depth: random(0.25, 1.1),
+      alpha: random(0.12, 0.36),
       phase: random(0, Math.PI * 2),
-      speed: random(0.00025, 0.00075),
+      speed: random(0.00012, 0.0004),
     }));
 
     renderParticles(false);
@@ -87,15 +88,6 @@
         particle.x += particle.vx * delta;
         particle.y += particle.vy * delta;
 
-        const dx = particle.x - currentX;
-        const dy = particle.y - currentY;
-        const distance = Math.hypot(dx, dy);
-        if (distance < 115 && distance > 0) {
-          const force = ((115 - distance) / 1150) * delta;
-          particle.x += (dx / distance) * force;
-          particle.y += (dy / distance) * force;
-        }
-
         if (particle.x < -8) particle.x = width + 8;
         if (particle.x > width + 8) particle.x = -8;
         if (particle.y < -8) particle.y = height + 8;
@@ -103,26 +95,12 @@
       }
 
       const shimmer = animate ? 0.68 + Math.sin(time * particle.speed + particle.phase) * 0.32 : 0.76;
+      const parallaxX = (currentX / Math.max(width, 1) - 0.5) * particle.depth * 5;
+      const parallaxY = (currentY / Math.max(height, 1) - 0.5) * particle.depth * 4;
       context.beginPath();
-      context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-      context.fillStyle = `rgba(203, 225, 210, ${particle.alpha * shimmer})`;
+      context.arc(particle.x + parallaxX, particle.y + parallaxY, particle.radius, 0, Math.PI * 2);
+      context.fillStyle = `rgba(218, 222, 227, ${particle.alpha * shimmer})`;
       context.fill();
-
-      for (let j = i + 1; j < particles.length; j += 1) {
-        const other = particles[j];
-        const dx = particle.x - other.x;
-        const dy = particle.y - other.y;
-        const distanceSquared = dx * dx + dy * dy;
-        if (distanceSquared < 12544) {
-          const lineDistance = Math.sqrt(distanceSquared);
-          context.beginPath();
-          context.moveTo(particle.x, particle.y);
-          context.lineTo(other.x, other.y);
-          context.strokeStyle = `rgba(167, 197, 177, ${(1 - lineDistance / 112) * 0.085})`;
-          context.lineWidth = 0.55;
-          context.stroke();
-        }
-      }
     }
   }
 

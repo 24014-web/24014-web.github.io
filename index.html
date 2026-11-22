@@ -5,12 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#05050a" />
     <meta name="description" content="NVOR is taking shape. A new digital space is coming into focus." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="NVOR — In the making" />
+    <meta property="og:description" content="A world of light, gravity, and distant orbits is coming into focus." />
+    <meta property="og:url" content="https://nvor.tech/" />
+    <meta property="og:image" content="https://nvor.tech/blackhole-poster.svg?v=blackhole-pro-v17" />
+    <meta name="twitter:card" content="summary_large_image" />
     <title>NVOR — In the making</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=cinematic-2" />
+    <link rel="stylesheet" href="styles.css?v=blackhole-pro-v17" />
     <script type="importmap">
       {
         "imports": {
@@ -19,8 +25,8 @@
         }
       }
     </script>
-    <script src="motion.js?v=performance-20261120" defer></script>
-    <script type="module" src="model3d.js?v=cinematic-2"></script>
+    <script src="motion.js?v=blackhole-pro-v17" defer></script>
+    <script type="module" src="model3d.js?v=blackhole-pro-v17"></script>
   </head>
   <body>
     <div class="ambient" aria-hidden="true">
@@ -45,7 +51,7 @@
 
         <div class="header-status">
           <span class="status-light"></span>
-          <span>A NEW SPACE IS TAKING SHAPE</span>
+          <span>AN EXPERIMENT IN MOTION</span>
         </div>
 
         <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false" aria-label="Pause motion">
@@ -59,86 +65,59 @@
           <div class="hero-copy reveal">
             <p class="eyebrow"><span class="eyebrow-number">01</span><span class="eyebrow-rule"></span>IN THE MAKING</p>
             <h1 id="hero-title">Something<br /><span class="title-muted">good is taking</span><br />shape<span class="title-period">.</span></h1>
-            <p class="hero-description">A new digital space is taking shape — quietly, carefully, and in its own light.</p>
+            <p class="hero-description">A world of light, gravity, and distant orbits is coming into focus.</p>
             <div class="hero-actions">
               <a class="button-primary" href="#note">
-                <span>Take a look around</span>
+                <span>Meet the orbiting worlds</span>
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12M10 4l6 6-6 6" /></svg>
               </a>
-              <span class="action-caption"><span class="caption-dot"></span>MORE SOON</span>
             </div>
           </div>
 
-          <div class="hero-art reveal" role="img" aria-label="A dark black hole with a thin white-gold accretion disk bending into bright arcs, and three orbiting chrome planets">
-            <div class="art-topline"><span>EVENT HORIZON</span><span>LIGHT IN MOTION</span></div>
+          <div class="hero-art reveal" role="img" aria-label="A 3D black hole surrounded by a luminous warped accretion disk and three orbiting chrome planets">
             <div class="orbit-scene" id="orbitScene" aria-hidden="true">
               <canvas class="three-canvas" id="nvor3d"></canvas>
               <div class="orbit-system">
-                <div class="blackhole-fallback">
-                  <span class="fallback-disc"></span>
-                  <span class="fallback-halo"></span>
-                  <span class="fallback-photon-ring"></span>
-                  <span class="fallback-horizon"></span>
-                  <span class="fallback-orb fallback-orb-one"></span>
-                  <span class="fallback-orb fallback-orb-two"></span>
-                  <span class="fallback-orb fallback-orb-three"></span>
-                </div>
+                <div class="blackhole-fallback"></div>
               </div>
             </div>
-            <div class="art-bottomline"><span>GRAVITY IN MOTION</span><span class="art-coordinate">ACCRETION / 01</span></div>
-          </div>
-
-          <div class="hero-floor">
-            <span>BUILT SLOWLY. MADE TO STAY.</span>
-            <a href="#note" class="scroll-cue"><span>SCROLL TO DISCOVER</span><span class="scroll-arrow" aria-hidden="true">↓</span></a>
-            <span class="floor-index">THE NEXT CHAPTER</span>
           </div>
         </section>
 
-        <div class="signal-ticker" aria-label="Currently in the making">
-          <div class="ticker-track" aria-hidden="true">
-            <span>TAKING SHAPE</span><i>✳</i><span>MADE WITH INTENTION</span><i>✳</i><span>COMING INTO FOCUS</span><i>✳</i><span>TAKING SHAPE</span><i>✳</i><span>MADE WITH INTENTION</span><i>✳</i><span>COMING INTO FOCUS</span><i>✳</i>
-          </div>
-        </div>
+        <div class="section-divider" aria-hidden="true"><span></span></div>
 
         <section class="note-section" id="note" aria-labelledby="note-title">
-          <div class="section-rail reveal">
-            <span class="eyebrow-number">02</span>
-            <span class="rail-line"></span>
-            <span>A SHORT NOTE</span>
-          </div>
           <div class="note-content">
             <div class="note-heading reveal">
-              <p class="eyebrow">ORBITAL INDEX</p>
+              <p class="eyebrow">THREE WORLDS / ONE SINGULARITY</p>
               <h2 id="note-title">Worlds in motion.<br /><em>Light in orbit.</em></h2>
             </div>
             <div class="note-copy reveal">
-              <p>A razor-thin band of hot gas bends into bright arcs around the event horizon. Three liquid chrome worlds circle beyond the light.</p>
-              <p>Focus an orbital record below to bring that world forward in the scene.</p>
-              <a class="text-link" href="#top"><span>Back to the beginning</span><span aria-hidden="true">↗</span></a>
+              <p>A dense accretion stream wraps around a dark horizon. Beyond it, three chrome worlds move through the bending light.</p>
+              <p>Select a world to bring its orbit into focus.</p>
             </div>
           </div>
 
           <div class="principle-grid">
-            <article class="principle-card reveal" data-tilt data-orb-focus="0" tabindex="0">
+            <article class="principle-card reveal" data-tilt data-orb-focus="0" tabindex="0" role="button" aria-pressed="false" aria-label="Select Luma, inner orbit">
               <div class="card-top"><span>01 / INNER ORBIT</span><span class="card-mark">◉</span></div>
               <div class="card-rule"></div>
               <h3>Luma</h3>
-              <p>Dark chrome folds into thin-film color.</p>
+              <p>A black-chrome world catching a narrow band of light.</p>
               <span class="card-index">TIDAL—01</span>
             </article>
-            <article class="principle-card reveal" data-tilt data-orb-focus="1" tabindex="0">
+            <article class="principle-card reveal" data-tilt data-orb-focus="1" tabindex="0" role="button" aria-pressed="false" aria-label="Select Nyx, middle orbit">
               <div class="card-top"><span>02 / MID ORBIT</span><span class="card-mark">◌</span></div>
               <div class="card-rule"></div>
               <h3>Nyx</h3>
-              <p>Viscous ripples catch the moving lights.</p>
+              <p>Liquid metal shifting under tidal light.</p>
               <span class="card-index">CHROMA—02</span>
             </article>
-            <article class="principle-card reveal" data-tilt data-orb-focus="2" tabindex="0">
+            <article class="principle-card reveal" data-tilt data-orb-focus="2" tabindex="0" role="button" aria-pressed="false" aria-label="Select Veyra, outer orbit">
               <div class="card-top"><span>03 / OUTER ORBIT</span><span class="card-mark">↗</span></div>
               <div class="card-rule"></div>
               <h3>Veyra</h3>
-              <p>A small world turning at the edge of gravity.</p>
+              <p>A distant silver body at the edge of the system.</p>
               <span class="card-index">ORBIT—03</span>
             </article>
           </div>
@@ -148,7 +127,7 @@
           <div class="closing-glow" aria-hidden="true"></div>
           <p class="eyebrow"><span class="status-light"></span> UNTIL THEN</p>
           <h2 id="closing-title">See you<br /><span>on the other side.</span></h2>
-          <p class="closing-note">A new beginning is quietly on its way.</p>
+          <p class="closing-note">Return when the next world comes into view.</p>
           <a class="closing-link" href="#top" aria-label="Return to the top of the page">↑</a>
           <div class="closing-orbit closing-orbit-one" aria-hidden="true"></div>
           <div class="closing-orbit closing-orbit-two" aria-hidden="true"></div>
@@ -157,7 +136,7 @@
 
       <footer class="site-footer">
         <a class="footer-brand" href="#top">NVOR<span>.</span></a>
-        <span class="footer-caption">A NEW SPACE IS TAKING SHAPE</span>
+        <span class="footer-caption">LIGHT HAS AN ORBIT</span>
         <span class="footer-copyright">© <span id="year">2026</span> / MADE WITH PATIENCE</span>
       </footer>
     </div>
