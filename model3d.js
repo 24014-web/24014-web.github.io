@@ -643,30 +643,24 @@ if (stage && canvas && hero) {
         selectedPlanet = index;
       });
       card.addEventListener("pointerleave", () => {
-        if (document.activeElement !== card) selectedPlanet = pinnedPlanet;
+        if (!card.matches(":focus-within")) selectedPlanet = pinnedPlanet;
       });
-      card.addEventListener("focus", () => {
+      card.addEventListener("focusin", () => {
         selectedPlanet = index;
       });
-      card.addEventListener("blur", () => {
+      card.addEventListener("focusout", () => {
         if (!card.matches(":hover")) selectedPlanet = pinnedPlanet;
       });
-      card.addEventListener("click", () => {
+    });
+
+    document.querySelectorAll("[data-orb-pin]").forEach((button) => {
+      const index = Number(button.dataset.orbPin);
+      button.addEventListener("click", () => {
         pinnedPlanet = pinnedPlanet === index ? -1 : index;
         selectedPlanet = pinnedPlanet;
-        document.querySelectorAll("[data-orb-focus]").forEach((candidate) => {
-          candidate.setAttribute("aria-pressed", String(Number(candidate.dataset.orbFocus) === pinnedPlanet));
+        document.querySelectorAll("[data-orb-pin]").forEach((candidate) => {
+          candidate.setAttribute("aria-pressed", String(Number(candidate.dataset.orbPin) === pinnedPlanet));
         });
-      });
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          card.click();
-        } else if (event.key === "Escape") {
-          pinnedPlanet = -1;
-          selectedPlanet = -1;
-          document.querySelectorAll("[data-orb-focus]").forEach((candidate) => candidate.setAttribute("aria-pressed", "false"));
-        }
       });
     });
 
