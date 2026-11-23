@@ -4,19 +4,31 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#05050a" />
-    <meta name="description" content="NVOR is taking shape. A new digital space is coming into focus." />
+    <meta name="description" content="Explore NVOR Tech's interactive 3D black-hole experience, with a shader-driven accretion disk and three reflective worlds in orbit." />
+    <link rel="canonical" href="https://nvor.tech/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="NVOR — In the making" />
-    <meta property="og:description" content="A world of light, gravity, and distant orbits is coming into focus." />
+    <meta property="og:site_name" content="NVOR Tech" />
+    <meta property="og:title" content="NVOR Tech — Interactive 3D Black-Hole Experience" />
+    <meta property="og:description" content="Explore a shader-driven black hole and three reflective worlds in orbit." />
     <meta property="og:url" content="https://nvor.tech/" />
     <meta property="og:image" content="https://nvor.tech/blackhole-poster.svg?v=blackhole-pro-v17" />
     <meta name="twitter:card" content="summary_large_image" />
-    <title>NVOR — In the making</title>
+    <title>NVOR Tech — Interactive 3D Black-Hole Experience</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://nvor.tech/#website",
+        "url": "https://nvor.tech/",
+        "name": "NVOR Tech",
+        "alternateName": "NVOR"
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=blackhole-pro-v17" />
+    <link rel="stylesheet" href="styles.css?v=nvor-search-content-v1" />
     <script type="importmap">
       {
         "imports": {
@@ -39,19 +51,19 @@
 
     <div class="site-shell" id="top">
       <header class="site-header">
-        <a class="brand" href="#top" aria-label="NVOR home">
+        <a class="brand" href="#top" aria-label="NVOR Tech home">
           <span class="brand-symbol" aria-hidden="true">
             <svg viewBox="0 0 32 32" fill="none">
               <path d="M8 23.5V8.5L24 23.5V8.5" />
               <circle cx="24" cy="8.5" r="2" />
             </svg>
           </span>
-          <span class="brand-name">NVOR<span>.</span></span>
+          <span class="brand-name">NVOR<span>.</span><span class="brand-tech">TECH</span></span>
         </a>
 
         <div class="header-status">
           <span class="status-light"></span>
-          <span>AN EXPERIMENT IN MOTION</span>
+          <span>INTERACTIVE WEB EXPERIMENT</span>
         </div>
 
         <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false" aria-label="Pause motion">
@@ -63,12 +75,12 @@
       <main>
         <section class="hero" aria-labelledby="hero-title">
           <div class="hero-copy reveal">
-            <p class="eyebrow"><span class="eyebrow-number">01</span><span class="eyebrow-rule"></span>IN THE MAKING</p>
-            <h1 id="hero-title">Something<br /><span class="title-muted">good is taking</span><br />shape<span class="title-period">.</span></h1>
-            <p class="hero-description">A world of light, gravity, and distant orbits is coming into focus.</p>
+            <p class="eyebrow"><span class="eyebrow-number">01</span><span class="eyebrow-rule"></span>NVOR TECH / 3D WEB EXPERIENCE</p>
+            <h1 id="hero-title">A black hole<br /><span class="title-muted">in</span> motion<span class="title-period">.</span></h1>
+            <p class="hero-description">NVOR Tech creates interactive 3D scenes for the web. Explore a shader-driven black hole and three reflective worlds; focus each orbit or pause the motion.</p>
             <div class="hero-actions">
-              <a class="button-primary" href="#note">
-                <span>Meet the orbiting worlds</span>
+              <a class="button-primary" href="/black-hole/">
+                <span>Explore the project</span>
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12M10 4l6 6-6 6" /></svg>
               </a>
             </div>
@@ -93,8 +105,8 @@
               <h2 id="note-title">Worlds in motion.<br /><em>Light in orbit.</em></h2>
             </div>
             <div class="note-copy reveal">
-              <p>A dense accretion stream wraps around a dark horizon. Beyond it, three chrome worlds move through the bending light.</p>
-              <p>Select a world to bring its orbit into focus.</p>
+              <p>NVOR Tech is an evolving web project exploring real-time 3D graphics and interaction. Its current public experiment is a browser-based black-hole scene with a custom-shaded accretion disk and three reflective worlds.</p>
+              <p>Select Luma, Nyx, or Veyra to focus its orbit. Read how the scene is built on the <a href="/black-hole/">black-hole project page</a>.</p>
             </div>
           </div>
 
@@ -123,6 +135,21 @@
           </div>
         </section>
 
+        <section class="about-section" id="about" aria-labelledby="about-title">
+          <div class="about-heading">
+            <p class="eyebrow">ABOUT NVOR TECH</p>
+            <h2 id="about-title">Experiments<br /><em>for the browser.</em></h2>
+          </div>
+          <div class="about-copy">
+            <p>NVOR Tech explores interactive graphics made to run on the web. The current project combines a real-time Three.js scene, custom shaders, reflective planet surfaces, and direct controls for exploring each orbit.</p>
+            <p>The black-hole visuals are an art-directed interpretation, not a scientific simulation of a real black hole. The project page explains the rendering choices and interactions.</p>
+            <div class="about-links">
+              <a href="/black-hole/">Read the project notes <span aria-hidden="true">↗</span></a>
+              <a href="https://github.com/24014-web/24014-web.github.io">View the source on GitHub <span aria-hidden="true">↗</span></a>
+            </div>
+          </div>
+        </section>
+
         <section class="closing-section reveal" aria-labelledby="closing-title">
           <div class="closing-glow" aria-hidden="true"></div>
           <p class="eyebrow"><span class="status-light"></span> UNTIL THEN</p>
@@ -135,7 +162,8 @@
       </main>
 
       <footer class="site-footer">
-        <a class="footer-brand" href="#top">NVOR<span>.</span></a>
+        <a class="footer-brand" href="#top">NVOR<span>.</span> Tech</a>
+        <a class="footer-source" href="https://github.com/24014-web/24014-web.github.io">SOURCE ON GITHUB ↗</a>
         <span class="footer-caption">LIGHT HAS AN ORBIT</span>
         <span class="footer-copyright">© <span id="year">2026</span> / MADE WITH PATIENCE</span>
       </footer>
